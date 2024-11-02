@@ -28,12 +28,12 @@ def plot_distribution(mean: float, std: float, num_points: int):
 
 with gr.Blocks() as blocks:
     with gr.Row():
-        with gr.Column():
+        with gr.Column(scale=1, variant="compact"):
             mean_input = gr.Number(label="Moyenne", value=50)
             std_input = gr.Number(label="Écart-Type", value=10)
             num_points_input = gr.Number(label="Nombre de Points", value=20, step=1)
 
-        with gr.Column():
+        with gr.Column(scale=2):
             output_plot = gr.Plot(label="Graphique de Distribution")
 
     # Button to refresh the graph
