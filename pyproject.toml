@@ -8,6 +8,9 @@ authors = [
 dependencies = [
     "typer>=0.12.5",
     "python-dotenv>=1.0.1",
+    "uvicorn>=0.32.0",
+    "fastapi>=0.115.4",
+    "gradio>=5.5.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
