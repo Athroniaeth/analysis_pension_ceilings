@@ -19,7 +19,7 @@ def plot_distribution(mean: float, std: float, num_points: int):
     y = (1 / (std * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((x - mean) / std) ** 2)
 
     fig, ax = plt.subplots(figsize=(6, 4))
-    ax.bar(x, y, width=0.5, alpha=0.7, edgecolor='k')
+    ax.bar(x, y, width=0.5, alpha=0.7, edgecolor="k")
     ax.set_title("Distribution Normale Discrète")
     ax.set_xlabel("Prix")
     ax.set_ylabel("Probabilité")

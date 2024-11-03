@@ -11,17 +11,6 @@ app.mount("/static", StaticFiles(directory=STATIC_PATH), name="static")
 
 logger.debug("Starting the Gradio application")
 
-css = """
-.table-wrap.svelte-1oa6fve.no-wrap { 
-    min-height: 500px; 
-    max-height: 500px; 
-}  /* Prevents slider bug changing table height constantly */
-
-footer.svelte-1rjryqp {
-    display: none !important;
-}
-"""
-
 gradio_app = gr.mount_gradio_app(
     app=app,
     path="/",
