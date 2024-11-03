@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from starlette.staticfiles import StaticFiles
 
 from analysis_pension_ceilings import logger, STATIC_PATH
+from analysis_pension_ceilings.blocks import blocks
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory=STATIC_PATH), name="static")
@@ -20,8 +21,6 @@ footer.svelte-1rjryqp {
     display: none !important;
 }
 """
-
-blocks = gr.Blocks()
 
 gradio_app = gr.mount_gradio_app(
     app=app,
