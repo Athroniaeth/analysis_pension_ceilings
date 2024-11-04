@@ -1,30 +1,52 @@
 import typer
 from typer import Typer
 
-from analysis_pension_ceilings import logger
+from analysis_pension_ceilings import logger, DATA_PATH
+from analysis_pension_ceilings.download import download_excel_file
 
 cli = Typer(no_args_is_help=True)
 
+DATASET_INPUT_URL = "https://www.data.gouv.fr/fr/datasets/r/5f9c260a-5a9c-442a-8b30-6f9efebaeb16"
+
 
 @cli.command()
-def hello(name: str = typer.Argument("World", help="The name to say hello to.")):
+def download(
+    url: str = typer.Argument(DATASET_INPUT_URL, help="URL to download the file from."),
+    filename: str = typer.Argument("pension_ceilings.xlsx", help="Name of the file to save locally."),
+):
     """
-    Say hello to a name.
+    Download input data from the specified URL.
+
+    Args:
+        url (str): URL to download the file from.
+        filename (str): Name of the file to save locally.
+
+    Raises:
+        RequestException: If there is an issue with the download request.
+
     """
-    typer.echo(f"Hello {name}!")
-    raise Exception("An error occurred.")
+    logger.info(f"Downloading the file from the URL: '{url}'")
+
+    path = DATA_PATH / filename
+
+    if path.exists():
+        raise FileExistsError(f"File '{filename}' already exists in the data directory.")
+
+    download_excel_file(url, path)
+    logger.info(f"File successfully downloaded and saved as '{path}'")
 
 
 @cli.command()
 def run(
     app: str = typer.Option("analysis_pension_ceilings.app:app", envvar="APP", help="Application to launch."),
-    host: str = typer.Option("localhost", envvar="HOST", help="Adresse sur laquelle le serveur doit écouter."),
-    port: int = typer.Option(7860, envvar="PORT", help="Port sur lequel le serveur doit écouter."),
+    host: str = typer.Option("localhost", envvar="HOST", help="Address on which the server should listen."),
+    port: int = typer.Option(7860, envvar="PORT", help="Port on which the server should listen."),
 ):
     """
     Start the server with the given environment.
 
     Args:
+        app (str): Application to launch.
         host (str): Host IP address of the server.
         port (int): Port number of host server.
 
