@@ -37,6 +37,8 @@ cycler==0.12.1
 fastapi==0.115.4
     # via analysis-pension-ceilings
     # via gradio
+fastexcel==0.12.0
+    # via analysis-pension-ceilings
 ffmpy==0.4.0
     # via gradio
 filelock==3.16.1
@@ -96,6 +98,10 @@ pandas==2.2.3
 pillow==11.0.0
     # via gradio
     # via matplotlib
+polars==1.12.0
+    # via analysis-pension-ceilings
+pyarrow==18.0.0
+    # via fastexcel
 pydantic==2.9.2
     # via fastapi
     # via gradio
