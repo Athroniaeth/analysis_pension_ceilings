@@ -46,15 +46,43 @@ def extract_and_average_numbers(
     # Transform strings to integers
     df = df.with_columns(
         pl.col("extracted_numbers")
-        .map_elements(lambda x: [int(i) for i in x], return_dtype=pl.List(pl.UInt16))
+        .map_elements(lambda x: [int(i) for i in x], return_dtype=pl.List(pl.UInt32))
         .alias("extracted_numbers"),
     )
 
     # Calculate the average of the extracted numbers
     df = df.with_columns(
         pl.col("extracted_numbers")
-        .map_elements(statistics.mean, return_dtype=pl.UInt16)
+        .map_elements(statistics.mean, return_dtype=pl.UInt32)
         .alias(output_column),
+    )
+
+    return df
+
+
+def calcul_nbr_pensioners(
+    df: pl.DataFrame,
+    colname_percentage: str = "percentage",
+    colname_nbr_pensioners: str = "number_pensioners",
+    nbr_pensioners: int = 14_900_000,
+) -> pl.DataFrame:
+    """
+    Calculate the number of pensioners based on the percentage of the population.
+
+    Args:
+        df (pl.DataFrame): The input Polars DataFrame
+        colname_percentage (str): Name of the column containing the percentage values
+        colname_nbr_pensioners (str): Name of the column to store the calculated number of pensioners
+        nbr_pensioners (int): The total number of pensioners in the population
+
+    Returns:
+        pl.DataFrame: The DataFrame with the calculated number of pensioners
+    """
+    # Calculate the number of pensioners based on the percentage
+    df = df.with_columns(
+        (pl.col(colname_percentage) / 100 * nbr_pensioners)
+        .alias(colname_nbr_pensioners)
+        .cast(pl.UInt32)
     )
 
     return df
@@ -104,6 +132,32 @@ def preprocess_df(
     return df
 
 
+def apply_pension_ceiling(
+        df: pl.DataFrame,
+        ceiling: int = 2000,
+        colname_benefits: str = "average_benefits",
+) -> pl.DataFrame:
+    """
+    Apply a ceiling to the average pension values in the DataFrame.
+
+    Args:
+        df (pl.DataFrame): The input Polars DataFrame
+        ceiling (int): The maximum value to cap the average pension values
+        colname_benefits (str): Column name with avg pension after the ceiling
+
+    Returns:
+        pl.DataFrame: The DataFrame with the ceiling applied to the average pension values
+    """
+    # Apply the ceiling to the average to get benefits
+    df = df.with_columns(
+        pl.when((pl.col("average_pension").cast(pl.Int32) - ceiling) > 0)
+        .then(pl.col("average_pension") - ceiling).otherwise(0)
+        .alias(colname_benefits)
+    )
+
+    return df
+
+
 if __name__ == "__main__":
     path = DATA_PATH / "pension_ceilings.xlsx"
 
@@ -118,5 +172,13 @@ if __name__ == "__main__":
     print([dict_ for dict_ in df.columns])
 
     df = preprocess_df(df)
+    print(df.head(5))
+    print(df.tail(5))
+
+    df = calcul_nbr_pensioners(df, nbr_pensioners=14_900_000)
+    print(df.head(5))
+    print(df.tail(5))
+
+    df = apply_pension_ceiling(df, ceiling=2000)
     print(df.head(5))
     print(df.tail(5))
