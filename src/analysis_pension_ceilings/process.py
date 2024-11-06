@@ -1,11 +1,11 @@
 import re
 import statistics
-from typing import Optional
+from typing import Optional, Dict
 
 import fastexcel
 import polars as pl
 
-from analysis_pension_ceilings import DATA_PATH
+from analysis_pension_ceilings import DATA_PATH, logger
 
 
 def extract_and_average_numbers(
@@ -80,8 +80,9 @@ def calcul_nbr_pensioners(
     """
     # Calculate the number of pensioners based on the percentage
     df = df.with_columns(
-        ((pl.col(colname_percentage) / 100) * nbr_pensioners)
-        .alias(colname_nbr_pensioners)
+        ((pl.col(colname_percentage) / 100) * nbr_pensioners).alias(
+            colname_nbr_pensioners
+        )
     )
 
     return df
@@ -132,9 +133,9 @@ def preprocess_df(
 
 
 def apply_pension_ceiling(
-        df: pl.DataFrame,
-        ceiling: int = 2000,
-        colname_benefits: str = "average_benefits",
+    df: pl.DataFrame,
+    ceiling: int = 2000,
+    colname_benefits: str = "average_benefits",
 ) -> pl.DataFrame:
     """
     Apply a ceiling to the average pension values in the DataFrame.
@@ -150,12 +151,124 @@ def apply_pension_ceiling(
     # Apply the ceiling to the average to get benefits
     df = df.with_columns(
         pl.when((pl.col("average_pension") - ceiling) > 0)
-        .then(pl.col("average_pension") - ceiling).otherwise(0)
+        .then(pl.col("average_pension") - ceiling)
+        .otherwise(0)
         .alias(colname_benefits)
         .cast(pl.Int32)
     )
 
     return df
+
+
+def pipeline_pension_ceilings(
+    df: pl.DataFrame,
+    ceiling: int = 2000,
+    nbr_pensioners: int = 14_900_000,
+    colname_percentage: str = "percentage",
+    colname_average_pension: str = "average_pension",
+    colname_benefits: str = "average_benefits",
+    colname_nbr_pensioners: str = "number_pensioners",
+) -> pl.DataFrame:
+    """
+    Apply a series of transformations to the DataFrame to calculate the total benefits.
+
+    Args:
+        df (pl.DataFrame): The input Polars DataFrame
+        ceiling (int): The maximum value to cap the average pension values
+        nbr_pensioners (int): The total number of pensioners in the population
+        colname_percentage (str): Name of the column containing the percentage values
+        colname_average_pension (str): Name of the column containing the average pension values
+        colname_benefits (str): Column name with avg pension after the ceiling
+        colname_nbr_pensioners (str): Name of the column to store the calculated number of pensioners
+
+    Returns:
+        pl.DataFrame: The DataFrame with the total benefits calculated
+    """
+    df = preprocess_df(
+        df,
+        colname_percentage=colname_percentage,
+        colname_average_pension=colname_average_pension,
+    )
+
+    df = calcul_nbr_pensioners(
+        df,
+        colname_percentage=colname_percentage,
+        colname_nbr_pensioners=colname_nbr_pensioners,
+        nbr_pensioners=nbr_pensioners,
+    )
+
+    df = apply_pension_ceiling(df, ceiling=ceiling, colname_benefits=colname_benefits)
+
+    # Calculate total of average benefits
+    df = df.with_columns(
+        (pl.col(colname_benefits) * pl.col(colname_nbr_pensioners)).alias(
+            "total_average_benefits"
+        )
+    )
+
+    # Calculate total of amount of pension
+    df = df.with_columns(
+        (pl.col(colname_average_pension) * pl.col(colname_nbr_pensioners)).alias(
+            "total_average_pension"
+        )
+    )
+
+    return df
+
+
+def pipeline_statistics_pension_ceilings(
+    df: pl.DataFrame,
+    ceiling: int = 2000,
+    nbr_pensioners: int = 14_900_000,
+    colname_percentage: str = "percentage",
+    colname_average_pension: str = "average_pension",
+    colname_benefits: str = "average_benefits",
+    colname_nbr_pensioners: str = "number_pensioners",
+) -> Dict[str, float]:
+    """
+    Apply a series of transformations to the DataFrame to calculate the total benefits.
+
+    Args:
+        df (pl.DataFrame): The input Polars DataFrame
+        ceiling (int): The maximum value to cap the average pension values
+        nbr_pensioners (int): The total number of pensioners in the population
+        colname_percentage (str): Name of the column containing the percentage values
+        colname_average_pension (str): Name of the column containing the average pension values
+        colname_benefits (str): Column name with avg pension after the ceiling
+        colname_nbr_pensioners (str): Name of the column to store the calculated number of pensioners
+
+    Returns:
+        dict: A dictionary with the total benefits calculated
+    """
+    df = pipeline_pension_ceilings(
+        df,
+        ceiling=ceiling,
+        nbr_pensioners=nbr_pensioners,
+        colname_percentage=colname_percentage,
+        colname_average_pension=colname_average_pension,
+        colname_benefits=colname_benefits,
+        colname_nbr_pensioners=colname_nbr_pensioners,
+    )
+
+    total_pension = df["total_average_pension"].sum()
+    total_benefits = df["total_average_benefits"].sum()
+    percentage_benefits = total_benefits / total_pension
+
+    logger.info(f"Total benefits (per month): {total_benefits:,.0f} €")
+    logger.info(f"Total benefits (per year): {total_benefits * 12:,.0f} €")
+    logger.info(f"Total pension (per month): {total_pension:,.0f} €")
+    logger.info(f"Total pension (per year): {total_pension * 12:,.0f} €")
+    logger.info(
+        f"Percentage of benefits: {percentage_benefits:.2%} ({total_benefits:,.0f} / {total_pension:,.0f})"
+    )
+
+    return {
+        "total_benefits_month": total_benefits,
+        "total_benefits_year": total_benefits * 12,
+        "total_pension_month": total_pension,
+        "total_pension_year": total_pension * 12,
+        "percentage_benefits": percentage_benefits,
+    }
 
 
 if __name__ == "__main__":
@@ -171,37 +284,5 @@ if __name__ == "__main__":
     )
     print([dict_ for dict_ in df.columns])
 
-    df = preprocess_df(df)
-    print(df.head(5))
-    print(df.tail(5))
-
-    df = calcul_nbr_pensioners(df, nbr_pensioners=14_900_000)
-    print("Number of pensioners")
-    print(df.head(5))
-    print(df.tail(5))
-
-    df = apply_pension_ceiling(df, ceiling=2000)
-    print(df.head(5))
-    print(df.tail(5))
-
-    # Calcul total of average benefits
-    df = df.with_columns(
-        (pl.col("average_benefits") * pl.col("number_pensioners")).
-        alias("total_average_benefits")
-    )
-
-    # Calcul total of amount of pension
-    df = df.with_columns(
-        (pl.col("average_pension") * pl.col("number_pensioners")).
-        alias("total_average_pension")
-    )
-    print(df.head(5))
-    print(df.tail(5))
-
-    total_pension = df["total_average_pension"].sum()
-    total_benefits = df["total_average_benefits"].sum()
-    percentage_benefits = (total_benefits / total_pension)
-
-    print(f"Total benefits: {total_benefits:,.0f}€ (per month)")
-    print(f"Total benefits: {total_benefits * 12:,.0f}€ (per year)")
-    print(f"Percentage of benefits: {percentage_benefits:.2%}")
+    stats = pipeline_statistics_pension_ceilings(df)
+    print(stats)
