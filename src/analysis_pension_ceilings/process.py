@@ -46,14 +46,14 @@ def extract_and_average_numbers(
     # Transform strings to integers
     df = df.with_columns(
         pl.col("extracted_numbers")
-        .map_elements(lambda x: [int(i) for i in x], return_dtype=pl.List(pl.UInt32))
+        .map_elements(lambda x: [int(i) for i in x], return_dtype=pl.List(pl.Float32))
         .alias("extracted_numbers"),
     )
 
     # Calculate the average of the extracted numbers
     df = df.with_columns(
         pl.col("extracted_numbers")
-        .map_elements(statistics.mean, return_dtype=pl.UInt32)
+        .map_elements(statistics.mean, return_dtype=pl.Float32)
         .alias(output_column),
     )
 
@@ -80,9 +80,8 @@ def calcul_nbr_pensioners(
     """
     # Calculate the number of pensioners based on the percentage
     df = df.with_columns(
-        (pl.col(colname_percentage) / 100 * nbr_pensioners)
+        ((pl.col(colname_percentage) / 100) * nbr_pensioners)
         .alias(colname_nbr_pensioners)
-        .cast(pl.UInt32)
     )
 
     return df
@@ -115,7 +114,7 @@ def preprocess_df(
         pl.DataFrame: The preprocessed DataFrame.
     """
     # Delete last lines (useless data)
-    df = df.head(df.height - 4)
+    df = df.head(df.height - 5)
 
     # extract and average numbers
     df = extract_and_average_numbers(df, output_column=colname_average_pension)
@@ -150,9 +149,10 @@ def apply_pension_ceiling(
     """
     # Apply the ceiling to the average to get benefits
     df = df.with_columns(
-        pl.when((pl.col("average_pension").cast(pl.Int32) - ceiling) > 0)
+        pl.when((pl.col("average_pension") - ceiling) > 0)
         .then(pl.col("average_pension") - ceiling).otherwise(0)
         .alias(colname_benefits)
+        .cast(pl.Int32)
     )
 
     return df
@@ -166,7 +166,7 @@ if __name__ == "__main__":
 
     df = pl.read_excel(
         path,
-        sheet_name="pension brute de droit direct",
+        sheet_name="pension brute DD_carrière comp",
         read_options={"header_row": 2},
     )
     print([dict_ for dict_ in df.columns])
@@ -176,9 +176,32 @@ if __name__ == "__main__":
     print(df.tail(5))
 
     df = calcul_nbr_pensioners(df, nbr_pensioners=14_900_000)
+    print("Number of pensioners")
     print(df.head(5))
     print(df.tail(5))
 
     df = apply_pension_ceiling(df, ceiling=2000)
     print(df.head(5))
     print(df.tail(5))
+
+    # Calcul total of average benefits
+    df = df.with_columns(
+        (pl.col("average_benefits") * pl.col("number_pensioners")).
+        alias("total_average_benefits")
+    )
+
+    # Calcul total of amount of pension
+    df = df.with_columns(
+        (pl.col("average_pension") * pl.col("number_pensioners")).
+        alias("total_average_pension")
+    )
+    print(df.head(5))
+    print(df.tail(5))
+
+    total_pension = df["total_average_pension"].sum()
+    total_benefits = df["total_average_benefits"].sum()
+    percentage_benefits = (total_benefits / total_pension)
+
+    print(f"Total benefits: {total_benefits:,.0f}€ (per month)")
+    print(f"Total benefits: {total_benefits * 12:,.0f}€ (per year)")
+    print(f"Percentage of benefits: {percentage_benefits:.2%}")
