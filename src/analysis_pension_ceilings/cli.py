@@ -2,7 +2,7 @@ import typer
 from typer import Typer
 
 from analysis_pension_ceilings import logger, DATA_PATH
-from analysis_pension_ceilings.download import download_excel_file
+from analysis_pension_ceilings.download import download_excel_from_url
 
 cli = Typer(no_args_is_help=True)
 
@@ -38,7 +38,7 @@ def download(
             f"File '{filename}' already exists in the data directory."
         )
 
-    download_excel_file(url, path)
+    download_excel_from_url(url, path)
     logger.info(f"File successfully downloaded and saved as '{path}'")
 
 

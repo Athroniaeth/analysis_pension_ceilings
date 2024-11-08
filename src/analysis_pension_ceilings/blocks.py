@@ -1,9 +1,106 @@
 import gradio as gr
 import matplotlib.pyplot as plt
 import numpy as np
+import polars as pl
+
+from analysis_pension_ceilings import DATA_PATH
+from analysis_pension_ceilings.process import (
+    calcul_statistics_pension_ceilings,
+    calcul_pension_ceilings,
+)
+
+path = DATA_PATH / "pension_ceilings.xlsx"
+
+df = pl.read_excel(
+    path,
+    sheet_name="pension brute DD_carrière comp",
+    read_options={"header_row": 2},
+)
 
 
-def plot_distribution(mean: float, std: float, num_points: int):
+def plot_distribution(
+    x: np.ndarray,
+    y: np.ndarray,
+    name: str = "Distribution Normale Discrète",
+    x_label: str = "Prix",
+    y_label: str = "Probabilité",
+):
+    """
+    Plot the normal distribution.
+
+    Args:
+        x (np.ndarray): The x values of the distribution.
+        y (np.ndarray): The y values of the distribution.
+        name (str): The name of the plot.
+        x_label (str): The x-axis label.
+        y_label (str): The y-axis label.
+
+    Returns:
+        matplotlib.figure.Figure: The figure of the plot.
+    """
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.bar(x, y, width=0.5, alpha=0.7, edgecolor="k")
+    ax.set_title(name)
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    return fig
+
+
+def pipeline_statistics_pension_ceilings(
+    ceiling: int = 2000,
+    average_open_ended: int = 8000,
+    nbr_pensioners: int = 14_900_000,
+    colname_percentage: str = "percentage",
+    colname_average_pension: str = "average_pension",
+    colname_benefits: str = "average_benefits",
+    colname_nbr_pensioners: str = "number_pensioners",
+):
+    """
+    Gradio pipeline, calculate the total benefits of the ceiling.
+
+    Args:
+        ceiling (int): The maximum value to cap the average pension values.
+        nbr_pensioners (int): The total number of pensioners in the population.
+
+    Returns:
+        dict: A dictionary with the total benefits calculated.
+    """
+    global df
+
+    df_result = calcul_pension_ceilings(
+        df,
+        ceiling=ceiling,
+        average_open_ended=average_open_ended,
+        nbr_pensioners=nbr_pensioners,
+        colname_percentage=colname_percentage,
+        colname_average_pension=colname_average_pension,
+        colname_benefits=colname_benefits,
+        colname_nbr_pensioners=colname_nbr_pensioners,
+    )
+
+    total_pension = df_result["total_average_pension"].sum()
+    total_benefits = df_result["total_average_benefits"].sum()
+    percentage_benefits = total_benefits / total_pension
+
+    # Get number persons per pension average (uniq)
+    x = df_result[colname_average_pension].to_numpy()
+    y = df_result[colname_nbr_pensioners].to_numpy()
+    before_plot = plot_distribution(x, y)
+
+    # Get number persons per pension average after processing
+    df_agg = (
+        df_result
+        .group_by("average_pension_after_ceiling", maintain_order=True)
+        .agg(pl.col("number_pensioners").sum())
+    )
+    x = df_agg["average_pension_after_ceiling"].to_numpy()
+    y = df_agg["number_pensioners"].to_numpy()
+    after_process_plot = plot_distribution(x, y)
+
+    return f"{percentage_benefits:.2%}", before_plot, after_process_plot
+
+
+def _plot_distribution(mean: float, std: float, num_points: int):
     """
     Plot the normal distribution.
 
@@ -28,20 +125,41 @@ def plot_distribution(mean: float, std: float, num_points: int):
 
 with gr.Blocks() as blocks:
     with gr.Row():
-        with gr.Column(scale=1, variant="compact"):
-            mean_input = gr.Number(label="Moyenne", value=50)
-            std_input = gr.Number(label="Écart-Type", value=10)
+        with gr.Column(scale=2, variant="compact"):
+            input_ceiling = gr.Number(label="Plafond des pensions", value=2000)
+            input_average_open_ended = gr.Number(
+                label="Moyenne ouverte des grandes pensions", value=8000, info="test"
+            )
+            input_nbr_pensioner = gr.Number(
+                label="Nombre de pensionnaires", value=14_900_000
+            )
             num_points_input = gr.Number(label="Nombre de Points", value=20, step=1)
 
-        with gr.Column(scale=2):
-            output_plot = gr.Plot(label="Graphique de Distribution")
+            # Button to refresh the graph
+            calcul_button = gr.Button("Calculer")
 
-    # Button to refresh the graph
-    generate_button = gr.Button("Générer")
+        with gr.Column(scale=5):
+            output_plot = gr.Plot(label="Graphique de Distribution")
+            output_plot2 = gr.Plot(label="Graphique de Distribution")
+
+        with gr.Column(scale=1):
+            output_percentage = gr.Textbox(label="Pourcentage des bénéfices")
+
+    blocks.load(
+        fn=pipeline_statistics_pension_ceilings,
+        inputs=[input_ceiling, input_average_open_ended, input_nbr_pensioner],
+        outputs=[output_percentage, output_plot, output_plot2],
+    )
+
+    calcul_button.click(
+        fn=pipeline_statistics_pension_ceilings,
+        inputs=[input_ceiling, input_average_open_ended, input_nbr_pensioner],
+        outputs=[output_percentage, output_plot, output_plot2],
+    )
 
     # Link between the inputs, and the graph
-    generate_button.click(
+    """    calcul_button.click(
         fn=plot_distribution,
-        inputs=[mean_input, std_input, num_points_input],
+        inputs=[input_ceiling, input_nbr_pensioner, num_points_input],
         outputs=output_plot,
-    )
+    )"""

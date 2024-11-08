@@ -160,9 +160,10 @@ def apply_pension_ceiling(
     return df
 
 
-def pipeline_pension_ceilings(
+def calcul_pension_ceilings(
     df: pl.DataFrame,
     ceiling: int = 2000,
+    average_open_ended: int = 8000,
     nbr_pensioners: int = 14_900_000,
     colname_percentage: str = "percentage",
     colname_average_pension: str = "average_pension",
@@ -175,6 +176,7 @@ def pipeline_pension_ceilings(
     Args:
         df (pl.DataFrame): The input Polars DataFrame
         ceiling (int): The maximum value to cap the average pension values
+        average_open_ended (int): The average value to use for the open-ended class
         nbr_pensioners (int): The total number of pensioners in the population
         colname_percentage (str): Name of the column containing the percentage values
         colname_average_pension (str): Name of the column containing the average pension values
@@ -188,6 +190,7 @@ def pipeline_pension_ceilings(
         df,
         colname_percentage=colname_percentage,
         colname_average_pension=colname_average_pension,
+        average_open_ended=average_open_ended,
     )
 
     df = calcul_nbr_pensioners(
@@ -213,12 +216,19 @@ def pipeline_pension_ceilings(
         )
     )
 
+    # Calculate average pension after the ceiling
+    df = df.with_columns(
+        (pl.col("average_pension") - pl.col("average_benefits")).alias(
+            "average_pension_after_ceiling"
+        )
+    )
     return df
 
 
-def pipeline_statistics_pension_ceilings(
+def calcul_statistics_pension_ceilings(
     df: pl.DataFrame,
     ceiling: int = 2000,
+    average_open_ended: int = 8000,
     nbr_pensioners: int = 14_900_000,
     colname_percentage: str = "percentage",
     colname_average_pension: str = "average_pension",
@@ -231,6 +241,7 @@ def pipeline_statistics_pension_ceilings(
     Args:
         df (pl.DataFrame): The input Polars DataFrame
         ceiling (int): The maximum value to cap the average pension values
+        average_open_ended (int): The average value to use for the open-ended class
         nbr_pensioners (int): The total number of pensioners in the population
         colname_percentage (str): Name of the column containing the percentage values
         colname_average_pension (str): Name of the column containing the average pension values
@@ -240,9 +251,10 @@ def pipeline_statistics_pension_ceilings(
     Returns:
         dict: A dictionary with the total benefits calculated
     """
-    df = pipeline_pension_ceilings(
+    df = calcul_pension_ceilings(
         df,
         ceiling=ceiling,
+        average_open_ended=average_open_ended,
         nbr_pensioners=nbr_pensioners,
         colname_percentage=colname_percentage,
         colname_average_pension=colname_average_pension,
@@ -284,5 +296,5 @@ if __name__ == "__main__":
     )
     print([dict_ for dict_ in df.columns])
 
-    stats = pipeline_statistics_pension_ceilings(df)
+    stats = calcul_statistics_pension_ceilings(df)
     print(stats)
