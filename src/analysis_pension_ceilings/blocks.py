@@ -5,7 +5,6 @@ import polars as pl
 
 from analysis_pension_ceilings import DATA_PATH
 from analysis_pension_ceilings.process import (
-    calcul_statistics_pension_ceilings,
     calcul_pension_ceilings,
 )
 
@@ -88,11 +87,9 @@ def pipeline_statistics_pension_ceilings(
     before_plot = plot_distribution(x, y)
 
     # Get number persons per pension average after processing
-    df_agg = (
-        df_result
-        .group_by("average_pension_after_ceiling", maintain_order=True)
-        .agg(pl.col("number_pensioners").sum())
-    )
+    df_agg = df_result.group_by(
+        "average_pension_after_ceiling", maintain_order=True
+    ).agg(pl.col("number_pensioners").sum())
     x = df_agg["average_pension_after_ceiling"].to_numpy()
     y = df_agg["number_pensioners"].to_numpy()
     after_process_plot = plot_distribution(x, y)

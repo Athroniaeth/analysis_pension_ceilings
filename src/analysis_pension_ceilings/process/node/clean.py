@@ -70,7 +70,7 @@ def node_refresh_header(df: pl.DataFrame):
     line = line.pop()
 
     # Cast all values to str (can have int, float, etc.)
-    line = {f'{k}': f'{v}' for k, v in line.items()}
+    line = {f"{k}": f"{v}" for k, v in line.items()}
 
     # Delete first line of the df
     df = df.tail(df.height - 1)

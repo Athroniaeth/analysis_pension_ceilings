@@ -1,9 +1,14 @@
 from typing import Dict
 
+import pandera.polars as pa
 import polars as pl
+from pandera.typing.polars import DataFrame, Series
 
 from analysis_pension_ceilings import DATA_PATH
-from analysis_pension_ceilings.process.node.clean import node_drop_lines, node_refresh_header
+from analysis_pension_ceilings.process.node.clean import (
+    node_drop_lines,
+    node_refresh_header,
+)
 
 MAPPING_COLUMNS = {
     "Montant\r\nde pension\r\n(en euros)": "slice_amount",
@@ -11,12 +16,18 @@ MAPPING_COLUMNS = {
 }
 
 
+class Schema(pa.DataFrameModel):
+    slice_amount: Series[str] = pa.Field(unique=True)
+    percentage: Series[str] = pa.Field()
+
+
+@pa.check_types
 def pipeline_clean(
-        df: pl.DataFrame,
-        n_first: int = 1,
-        n_last: int = 5,
-        mapping_columns: Dict[str, str] = None,
-):
+    df: pl.DataFrame,
+    n_first: int = 1,
+    n_last: int = 5,
+    mapping_columns: Dict[str, str] = None,
+) -> DataFrame[Schema]:
     """
     Transform bad format of Excel file to a clean DataFrame.
 
@@ -42,7 +53,7 @@ def pipeline_clean(
     df = df.rename(mapping_columns)
 
     # Drop useless columns
-    df = df[['slice_amount', 'percentage']]
+    df = df[["slice_amount", "percentage"]]
 
     return df
 
