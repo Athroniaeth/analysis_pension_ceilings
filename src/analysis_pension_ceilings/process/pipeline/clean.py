@@ -16,7 +16,7 @@ MAPPING_COLUMNS = {
 }
 
 
-class Schema(pa.DataFrameModel):
+class OutputSchema(pa.DataFrameModel):
     slice_amount: Series[str] = pa.Field(unique=True)
     percentage: Series[str] = pa.Field()
 
@@ -27,18 +27,18 @@ def pipeline_clean(
     n_first: int = 1,
     n_last: int = 5,
     mapping_columns: Dict[str, str] = None,
-) -> DataFrame[Schema]:
+) -> DataFrame[OutputSchema]:
     """
     Transform bad format of Excel file to a clean DataFrame.
 
     Args:
-        df (DataFrame[Schema]): The DataFrame to clean.
+        df (DataFrame[OutputSchema]): The DataFrame to clean.
         n_first (int): The number of first lines to drop.
         n_last (int): The number of last lines to drop.
         mapping_columns (Dict[str, str]): The mapping of columns to rename.
 
     Returns:
-        DataFrame[Schema]: The cleaned DataFrame.
+        DataFrame[OutputSchema]: The cleaned DataFrame.
     """
     if mapping_columns is None:
         mapping_columns = MAPPING_COLUMNS
