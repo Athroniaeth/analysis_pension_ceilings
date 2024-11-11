@@ -25,7 +25,7 @@ class OutputSchema(pa.DataFrameModel):
 def pipeline_clean(
     df: pl.DataFrame,
     n_first: int = 1,
-    n_last: int = 5,
+    n_last: int = 6,
     mapping_columns: Dict[str, str] = None,
 ) -> DataFrame[OutputSchema]:
     """
