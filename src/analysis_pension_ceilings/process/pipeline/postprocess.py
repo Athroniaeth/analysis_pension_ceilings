@@ -22,12 +22,11 @@ class OutputSchema(pa.DataFrameModel):
 
 def pipeline_postprocess(
     df: DataFrame[InputSchema],
+    ceiling: int = 2_000,
     nbr_pensioners: int = 14_900_000,
-    ceiling: int = 2000,
 ) -> DataFrame[OutputSchema]:
     # Calculate the number of pensioners based on the percentage
     calcul = (pl.col("percentage") / 100) * nbr_pensioners
-
     df = df.with_columns(calcul.alias("number_pensioners"))
 
     # Apply the ceiling to the average to get benefits

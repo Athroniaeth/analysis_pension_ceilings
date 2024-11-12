@@ -6,6 +6,7 @@ import fastexcel
 import polars as pl
 
 from analysis_pension_ceilings import DATA_PATH, logger
+from analysis_pension_ceilings.process.pipeline.postprocess import pipeline_postprocess
 
 
 def extract_and_average_numbers(
@@ -251,15 +252,11 @@ def calcul_statistics_pension_ceilings(
     Returns:
         dict: A dictionary with the total benefits calculated
     """
-    df = calcul_pension_ceilings(
+    df = pipeline_postprocess(
         df,
         ceiling=ceiling,
         average_open_ended=average_open_ended,
         nbr_pensioners=nbr_pensioners,
-        colname_percentage=colname_percentage,
-        colname_average_pension=colname_average_pension,
-        colname_benefits=colname_benefits,
-        colname_nbr_pensioners=colname_nbr_pensioners,
     )
 
     total_pension = df["total_average_pension"].sum()

@@ -4,16 +4,15 @@ import numpy as np
 import polars as pl
 
 from analysis_pension_ceilings import DATA_PATH
-from analysis_pension_ceilings.process import (
-    calcul_pension_ceilings,
-)
+from analysis_pension_ceilings.process.pipeline.clean import pipeline_clean
+from analysis_pension_ceilings.process.pipeline.postprocess import pipeline_postprocess
+from analysis_pension_ceilings.process.pipeline.preprocess import pipeline_preprocess
 
 path = DATA_PATH / "pension_ceilings.xlsx"
 
 df = pl.read_excel(
     path,
     sheet_name="pension brute DD_carrière comp",
-    read_options={"header_row": 2},
 )
 
 
@@ -49,16 +48,13 @@ def pipeline_statistics_pension_ceilings(
     ceiling: int = 2000,
     average_open_ended: int = 8000,
     nbr_pensioners: int = 14_900_000,
-    colname_percentage: str = "percentage",
-    colname_average_pension: str = "average_pension",
-    colname_benefits: str = "average_benefits",
-    colname_nbr_pensioners: str = "number_pensioners",
 ):
     """
     Gradio pipeline, calculate the total benefits of the ceiling.
 
     Args:
         ceiling (int): The maximum value to cap the average pension values.
+        average_open_ended (int): The value to use for the open-ended class.
         nbr_pensioners (int): The total number of pensioners in the population.
 
     Returns:
@@ -66,30 +62,23 @@ def pipeline_statistics_pension_ceilings(
     """
     global df
 
-    df_result = calcul_pension_ceilings(
-        df,
-        ceiling=ceiling,
-        average_open_ended=average_open_ended,
-        nbr_pensioners=nbr_pensioners,
-        colname_percentage=colname_percentage,
-        colname_average_pension=colname_average_pension,
-        colname_benefits=colname_benefits,
-        colname_nbr_pensioners=colname_nbr_pensioners,
-    )
+    df = pipeline_clean(df)
+    df = pipeline_preprocess(df, average_open_ended=average_open_ended)
+    df = pipeline_postprocess(df, ceiling=ceiling, nbr_pensioners=nbr_pensioners)
 
-    total_pension = df_result["total_average_pension"].sum()
-    total_benefits = df_result["total_average_benefits"].sum()
+    total_pension = df["total_average_pension"].sum()
+    total_benefits = df["total_average_benefits"].sum()
     percentage_benefits = total_benefits / total_pension
 
     # Get number persons per pension average (uniq)
-    x = df_result[colname_average_pension].to_numpy()
-    y = df_result[colname_nbr_pensioners].to_numpy()
+    x = df["average_pension"].to_numpy()
+    y = df["number_pensioners"].to_numpy()
     before_plot = plot_distribution(x, y)
 
     # Get number persons per pension average after processing
-    df_agg = df_result.group_by(
-        "average_pension_after_ceiling", maintain_order=True
-    ).agg(pl.col("number_pensioners").sum())
+    df_agg = df.group_by("average_pension_after_ceiling", maintain_order=True).agg(
+        pl.col("number_pensioners").sum()
+    )
     x = df_agg["average_pension_after_ceiling"].to_numpy()
     y = df_agg["number_pensioners"].to_numpy()
     after_process_plot = plot_distribution(x, y)
