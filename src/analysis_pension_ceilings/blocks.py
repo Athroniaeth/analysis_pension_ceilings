@@ -45,8 +45,8 @@ def plot_distribution(
 
 
 def pipeline_statistics_pension_ceilings(
-    ceiling: int = 2000,
-    average_open_ended: int = 8000,
+    ceiling: int = 2_000,
+    average_open_ended: int = 8_000,
     nbr_pensioners: int = 14_900_000,
 ):
     """
@@ -73,7 +73,7 @@ def pipeline_statistics_pension_ceilings(
     # Get number persons per pension average (uniq)
     x = df["average_pension"].to_numpy()
     y = df["number_pensioners"].to_numpy()
-    before_plot = plot_distribution(x, y)
+    plot_before = plot_distribution(x, y)
 
     # Get number persons per pension average after processing
     df_agg = df.group_by("average_pension_after_ceiling", maintain_order=True).agg(
@@ -81,32 +81,9 @@ def pipeline_statistics_pension_ceilings(
     )
     x = df_agg["average_pension_after_ceiling"].to_numpy()
     y = df_agg["number_pensioners"].to_numpy()
-    after_process_plot = plot_distribution(x, y)
+    plot_after = plot_distribution(x, y)
 
-    return f"{percentage_benefits:.2%}", before_plot, after_process_plot
-
-
-def _plot_distribution(mean: float, std: float, num_points: int):
-    """
-    Plot the normal distribution.
-
-    Args:
-        mean (float): The mean of the distribution.
-        std (float): The standard deviation of the distribution.
-        num_points (int): The number of points to plot.
-
-    Returns:
-        matplotlib.figure.Figure: The figure of the plot.
-    """
-    x = np.linspace(mean - 3 * std, mean + 3 * std, num_points)
-    y = (1 / (std * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((x - mean) / std) ** 2)
-
-    fig, ax = plt.subplots(figsize=(6, 4))
-    ax.bar(x, y, width=0.5, alpha=0.7, edgecolor="k")
-    ax.set_title("Distribution Normale Discrète")
-    ax.set_xlabel("Prix")
-    ax.set_ylabel("Probabilité")
-    return fig
+    return f"{percentage_benefits:.2%}", plot_before, plot_after
 
 
 with gr.Blocks() as blocks:
@@ -144,8 +121,10 @@ with gr.Blocks() as blocks:
     )
 
     # Link between the inputs, and the graph
-    """    calcul_button.click(
+    """    
+    calcul_button.click(
         fn=plot_distribution,
         inputs=[input_ceiling, input_nbr_pensioner, num_points_input],
         outputs=output_plot,
-    )"""
+    )
+    """
