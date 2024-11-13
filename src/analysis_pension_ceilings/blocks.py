@@ -19,7 +19,6 @@ df = pl.read_excel(
 def plot_distribution(
     x: np.ndarray,
     y: np.ndarray,
-    name: str = "Distribution Normale Discrète",
     x_label: str = "Prix",
     y_label: str = "Probabilité",
 ):
@@ -29,7 +28,6 @@ def plot_distribution(
     Args:
         x (np.ndarray): The x values of the distribution.
         y (np.ndarray): The y values of the distribution.
-        name (str): The name of the plot.
         x_label (str): The x-axis label.
         y_label (str): The y-axis label.
 
@@ -37,8 +35,7 @@ def plot_distribution(
         matplotlib.figure.Figure: The figure of the plot.
     """
     fig, ax = plt.subplots(figsize=(6, 4))
-    ax.bar(x, y, width=0.5, alpha=0.7, edgecolor="k")
-    ax.set_title(name)
+    ax.bar(x, y, width=0.5, alpha=0.7, edgecolor="orange")
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     return fig
@@ -62,62 +59,81 @@ def pipeline_statistics_pension_ceilings(
     """
     global df
 
-    df = pipeline_clean(df)
-    df = pipeline_preprocess(df, average_open_ended=average_open_ended)
-    df = pipeline_postprocess(df, ceiling=ceiling, nbr_pensioners=nbr_pensioners)
+    df_result = pipeline_clean(df)
+    df_result = pipeline_preprocess(df_result, average_open_ended=average_open_ended)
+    df_result = pipeline_postprocess(df_result, ceiling=ceiling, nbr_pensioners=nbr_pensioners)
 
-    total_pension = df["total_average_pension"].sum()
-    total_benefits = df["total_average_benefits"].sum()
+    total_pension = df_result["total_average_pension"].sum() * 12
+    total_benefits = df_result["total_average_benefits"].sum() * 12
     percentage_benefits = total_benefits / total_pension
 
     # Get number persons per pension average (uniq)
-    x = df["average_pension"].to_numpy()
-    y = df["number_pensioners"].to_numpy()
+    x = df_result["average_pension"].to_numpy()
+    y = df_result["number_pensioners"].to_numpy()
     plot_before = plot_distribution(x, y)
 
     # Get number persons per pension average after processing
-    df_agg = df.group_by("average_pension_after_ceiling", maintain_order=True).agg(
+    df_agg = df_result.group_by("average_pension_after_ceiling", maintain_order=True).agg(
         pl.col("number_pensioners").sum()
     )
     x = df_agg["average_pension_after_ceiling"].to_numpy()
     y = df_agg["number_pensioners"].to_numpy()
     plot_after = plot_distribution(x, y)
 
-    return f"{percentage_benefits:.2%}", plot_before, plot_after
+    return f"{total_pension:,.0f}", f"{total_benefits:,.0f}", f"{percentage_benefits:.2%}", plot_before, plot_after
 
 
-with gr.Blocks() as blocks:
+with gr.Blocks(theme="default") as blocks:
     with gr.Row():
-        with gr.Column(scale=2, variant="compact"):
-            input_ceiling = gr.Number(label="Plafond des pensions", value=2000)
+        with gr.Column(scale=1, variant="compact"):
+            gr.Markdown("### Inputs")
+            input_ceiling = gr.Number(label="Plafond des pensions", info="À partir de combien, on plafonne les pensions", value=2_000)
             input_average_open_ended = gr.Number(
-                label="Moyenne ouverte des grandes pensions", value=8000, info="test"
+                label="Moyenne ouverte des grandes pensions", value=8000, info="Valeur à utiliser pour la classe ouverte"
             )
             input_nbr_pensioner = gr.Number(
-                label="Nombre de pensionnaires", value=14_900_000
+                label="Nombre de pensionnaires", value=14_900_000, info="Nombre total de pensionnaires dans la population"
             )
-            num_points_input = gr.Number(label="Nombre de Points", value=20, step=1)
+
+        with gr.Column(scale=1, variant="compact"):
+            gr.Markdown("### Outputs")
+            output_total_pension = gr.Textbox(label="Total des pensions", info="Total des coûts par ans")
+            output_total_benefits = gr.Textbox(label="Total des bénéfices", info="Total des bénéfices par ans")
+            output_percentage = gr.Textbox(label="Pourcentage de bénéfices", info="Pourcentage des bénéfices par rapport aux pensions")
 
             # Button to refresh the graph
-            calcul_button = gr.Button("Calculer")
+            calcul_button = gr.Button("Calculer", variant="primary")
 
         with gr.Column(scale=5):
-            output_plot = gr.Plot(label="Graphique de Distribution")
-            output_plot2 = gr.Plot(label="Graphique de Distribution")
+            gr.Markdown("### Graphiques")
+            with gr.Tab("Before"):
+                output_plot = gr.Plot(label="Graphique de Distribution")
 
-        with gr.Column(scale=1):
-            output_percentage = gr.Textbox(label="Pourcentage des bénéfices")
+            with gr.Tab("After"):
+                output_plot2 = gr.Plot(label="Graphique de Distribution")
 
     blocks.load(
         fn=pipeline_statistics_pension_ceilings,
         inputs=[input_ceiling, input_average_open_ended, input_nbr_pensioner],
-        outputs=[output_percentage, output_plot, output_plot2],
+        outputs=[
+            output_total_pension,
+            output_total_benefits,
+            output_percentage,
+            output_plot,
+            output_plot2
+        ],
     )
 
     calcul_button.click(
         fn=pipeline_statistics_pension_ceilings,
         inputs=[input_ceiling, input_average_open_ended, input_nbr_pensioner],
-        outputs=[output_percentage, output_plot, output_plot2],
+        outputs=[
+            output_total_pension,
+            output_total_benefits,
+            output_percentage,
+            output_plot,
+            output_plot2
+        ],
     )
 
     # Link between the inputs, and the graph
