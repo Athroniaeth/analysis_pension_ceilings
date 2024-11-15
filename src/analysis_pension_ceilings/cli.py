@@ -4,7 +4,7 @@ from typer import Typer
 from analysis_pension_ceilings import logger, DATA_PATH
 from analysis_pension_ceilings.download import download_excel_from_url
 
-cli = Typer(no_args_is_help=True)
+cli = Typer(no_args_is_help=True, pretty_exceptions_enable=False)
 
 DATASET_INPUT_URL = "https://www.data.gouv.fr/fr/datasets/r/5f9c260a-5a9c-442a-8b30-6f9efebaeb16"
 
