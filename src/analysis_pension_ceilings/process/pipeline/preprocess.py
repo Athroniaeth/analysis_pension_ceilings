@@ -17,9 +17,7 @@ class OutputSchema(pa.DataFrameModel):
 
 
 @pa.check_types
-def pipeline_preprocess(
-    df: DataFrame[InputSchema], average_open_ended: float = 8000
-) -> DataFrame[OutputSchema]:
+def pipeline_preprocess(df: DataFrame[InputSchema], average_open_ended: float = 8000) -> DataFrame[OutputSchema]:
     """
     Transform bad format of Excel file to a clean DataFrame.
 
@@ -34,14 +32,10 @@ def pipeline_preprocess(
     df = df.with_columns(pl.col("percentage").cast(pl.Float64))
 
     # Delete first lines (useless data)
-    df = node_extract_numbers(
-        df, input_colname="slice_amount", output_colname="extracted_numbers"
-    )
+    df = node_extract_numbers(df, input_colname="slice_amount", output_colname="extracted_numbers")
 
     # Calculate the average of the extracted numbers
-    df = node_average_list_numbers(
-        df, input_colname="extracted_numbers", output_colname="average_pension"
-    )
+    df = node_average_list_numbers(df, input_colname="extracted_numbers", output_colname="average_pension")
 
     # Keep only the relevant columns
     df = df.select(["percentage", "average_pension"])

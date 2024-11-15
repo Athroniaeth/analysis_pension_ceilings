@@ -61,9 +61,7 @@ def pipeline_statistics_pension_ceilings(
 
     df_result = pipeline_clean(df)
     df_result = pipeline_preprocess(df_result, average_open_ended=average_open_ended)
-    df_result = pipeline_postprocess(
-        df_result, ceiling=ceiling, nbr_pensioners=nbr_pensioners
-    )
+    df_result = pipeline_postprocess(df_result, ceiling=ceiling, nbr_pensioners=nbr_pensioners)
 
     total_pension = df_result["total_average_pension"].sum() * 12
     total_benefits = df_result["total_average_benefits"].sum() * 12
@@ -75,9 +73,9 @@ def pipeline_statistics_pension_ceilings(
     plot_before = plot_distribution(x, y)
 
     # Get number persons per pension average after processing
-    df_agg = df_result.group_by(
-        "average_pension_after_ceiling", maintain_order=True
-    ).agg(pl.col("number_pensioners").sum())
+    df_agg = df_result.group_by("average_pension_after_ceiling", maintain_order=True).agg(
+        pl.col("number_pensioners").sum()
+    )
     x = df_agg["average_pension_after_ceiling"].to_numpy()
     y = df_agg["number_pensioners"].to_numpy()
     plot_after = plot_distribution(x, y)
@@ -113,12 +111,8 @@ with gr.Blocks(theme="default") as blocks:
 
         with gr.Column(scale=1, variant="compact"):
             gr.Markdown("### Outputs")
-            output_total_pension = gr.Textbox(
-                label="Total des pensions", info="Total des coûts par ans"
-            )
-            output_total_benefits = gr.Textbox(
-                label="Total des bénéfices", info="Total des bénéfices par ans"
-            )
+            output_total_pension = gr.Textbox(label="Total des pensions", info="Total des coûts par ans")
+            output_total_benefits = gr.Textbox(label="Total des bénéfices", info="Total des bénéfices par ans")
             output_percentage = gr.Textbox(
                 label="Pourcentage de bénéfices",
                 info="Pourcentage des bénéfices par rapport aux pensions",

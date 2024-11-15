@@ -52,9 +52,7 @@ def node_extract_numbers(
     # Extract numbers from the input column
     df = df.with_columns(
         pl.col(input_colname)
-        .map_elements(
-            partial(extract_numbers, pattern=pattern), return_dtype=pl.List(pl.Utf8)
-        )
+        .map_elements(partial(extract_numbers, pattern=pattern), return_dtype=pl.List(pl.Utf8))
         .alias(output_colname),
     )
 
@@ -105,9 +103,7 @@ def node_average_list_numbers(
     """
     # Calculate the average of the list of numbers
     df = df.with_columns(
-        pl.col(input_colname)
-        .map_elements(statistics.mean, return_dtype=pl.Float64)
-        .alias(output_colname),
+        pl.col(input_colname).map_elements(statistics.mean, return_dtype=pl.Float64).alias(output_colname),
     )
 
     return df
