@@ -61,7 +61,9 @@ def pipeline_statistics_pension_ceilings(
 
     df_result = pipeline_clean(df)
     df_result = pipeline_preprocess(df_result, average_open_ended=average_open_ended)
-    df_result = pipeline_postprocess(df_result, ceiling=ceiling, nbr_pensioners=nbr_pensioners)
+    df_result = pipeline_postprocess(
+        df_result, ceiling=ceiling, nbr_pensioners=nbr_pensioners
+    )
 
     total_pension = df_result["total_average_pension"].sum() * 12
     total_benefits = df_result["total_average_benefits"].sum() * 12
@@ -73,33 +75,54 @@ def pipeline_statistics_pension_ceilings(
     plot_before = plot_distribution(x, y)
 
     # Get number persons per pension average after processing
-    df_agg = df_result.group_by("average_pension_after_ceiling", maintain_order=True).agg(
-        pl.col("number_pensioners").sum()
-    )
+    df_agg = df_result.group_by(
+        "average_pension_after_ceiling", maintain_order=True
+    ).agg(pl.col("number_pensioners").sum())
     x = df_agg["average_pension_after_ceiling"].to_numpy()
     y = df_agg["number_pensioners"].to_numpy()
     plot_after = plot_distribution(x, y)
 
-    return f"{total_pension:,.0f}", f"{total_benefits:,.0f}", f"{percentage_benefits:.2%}", plot_before, plot_after
+    return (
+        f"{total_pension:,.0f}",
+        f"{total_benefits:,.0f}",
+        f"{percentage_benefits:.2%}",
+        plot_before,
+        plot_after,
+    )
 
 
 with gr.Blocks(theme="default") as blocks:
     with gr.Row():
         with gr.Column(scale=1, variant="compact"):
             gr.Markdown("### Inputs")
-            input_ceiling = gr.Number(label="Plafond des pensions", info="À partir de combien, on plafonne les pensions", value=2_000)
+            input_ceiling = gr.Number(
+                label="Plafond des pensions",
+                info="À partir de combien, on plafonne les pensions",
+                value=2_000,
+            )
             input_average_open_ended = gr.Number(
-                label="Moyenne ouverte des grandes pensions", value=8000, info="Valeur à utiliser pour la classe ouverte"
+                label="Moyenne ouverte des grandes pensions",
+                value=8000,
+                info="Valeur à utiliser pour la classe ouverte",
             )
             input_nbr_pensioner = gr.Number(
-                label="Nombre de pensionnaires", value=14_900_000, info="Nombre total de pensionnaires dans la population"
+                label="Nombre de pensionnaires",
+                value=14_900_000,
+                info="Nombre total de pensionnaires dans la population",
             )
 
         with gr.Column(scale=1, variant="compact"):
             gr.Markdown("### Outputs")
-            output_total_pension = gr.Textbox(label="Total des pensions", info="Total des coûts par ans")
-            output_total_benefits = gr.Textbox(label="Total des bénéfices", info="Total des bénéfices par ans")
-            output_percentage = gr.Textbox(label="Pourcentage de bénéfices", info="Pourcentage des bénéfices par rapport aux pensions")
+            output_total_pension = gr.Textbox(
+                label="Total des pensions", info="Total des coûts par ans"
+            )
+            output_total_benefits = gr.Textbox(
+                label="Total des bénéfices", info="Total des bénéfices par ans"
+            )
+            output_percentage = gr.Textbox(
+                label="Pourcentage de bénéfices",
+                info="Pourcentage des bénéfices par rapport aux pensions",
+            )
 
             # Button to refresh the graph
             calcul_button = gr.Button("Calculer", variant="primary")
@@ -120,7 +143,7 @@ with gr.Blocks(theme="default") as blocks:
             output_total_benefits,
             output_percentage,
             output_plot,
-            output_plot2
+            output_plot2,
         ],
     )
 
@@ -132,7 +155,7 @@ with gr.Blocks(theme="default") as blocks:
             output_total_benefits,
             output_percentage,
             output_plot,
-            output_plot2
+            output_plot2,
         ],
     )
 

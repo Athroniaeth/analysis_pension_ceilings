@@ -18,7 +18,7 @@ def download_excel_from_url(url: str, filename: Union[str, PathLike]):
     """
     path = Path(filename)
     print(f"{path.absolute()=}")
-    print(f"*"*50)
+    print("*" * 50)
     path.parent.mkdir(parents=True, exist_ok=True)
 
     try:
