@@ -1,0 +1,13 @@
+services:
+  gradio:
+    build: .
+    container_name: gradio
+    volumes:
+      # shorten letsencrypt path because symbolic link is not supported else where
+      - /etc/letsencrypt/:/etc/letsencrypt/
+    ports:
+      - "7860:7860"
+    restart: unless-stopped
+
+volumes:
+  shared_db_volume:

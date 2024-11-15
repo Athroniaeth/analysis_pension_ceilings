@@ -8,4 +8,4 @@ RUN uv pip install --no-cache --system -r requirements.lock
 
 COPY src ./src
 RUN python src/analysis_pension_ceilings download
-CMD python src/analysis_pension_ceilings run
+CMD python src/analysis_pension_ceilings run --host 0.0.0.0
