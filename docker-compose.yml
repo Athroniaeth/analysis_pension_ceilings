@@ -8,6 +8,3 @@ services:
     ports:
       - "7860:7860"
     restart: unless-stopped
-
-volumes:
-  shared_db_volume:

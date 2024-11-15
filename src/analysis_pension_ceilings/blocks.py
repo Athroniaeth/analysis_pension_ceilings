@@ -124,10 +124,10 @@ with gr.Blocks(theme="default") as blocks:
         with gr.Column(scale=5):
             gr.Markdown("### Graphiques")
             with gr.Tab("Before"):
-                output_plot = gr.Plot(label="Graphique de Distribution")
+                before_plot = gr.Plot(label="Graphique de Distribution")
 
             with gr.Tab("After"):
-                output_plot2 = gr.Plot(label="Graphique de Distribution")
+                after_plot = gr.Plot(label="Graphique de Distribution")
 
     blocks.load(
         fn=pipeline_statistics_pension_ceilings,
@@ -136,8 +136,8 @@ with gr.Blocks(theme="default") as blocks:
             output_total_pension,
             output_total_benefits,
             output_percentage,
-            output_plot,
-            output_plot2,
+            before_plot,
+            after_plot,
         ],
     )
 
@@ -148,16 +148,7 @@ with gr.Blocks(theme="default") as blocks:
             output_total_pension,
             output_total_benefits,
             output_percentage,
-            output_plot,
-            output_plot2,
+            before_plot,
+            after_plot,
         ],
     )
-
-    # Link between the inputs, and the graph
-    """    
-    calcul_button.click(
-        fn=plot_distribution,
-        inputs=[input_ceiling, input_nbr_pensioner, num_points_input],
-        outputs=output_plot,
-    )
-    """
